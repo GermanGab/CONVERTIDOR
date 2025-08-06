@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Convertidor a PDF</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input[type="file"] {
+      margin-bottom: 15px;
+    }
+    #preview img {
+      width: 100px;
+      margin: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Convertidor de Imágenes a PDF</h2>
+
+  <input type="file" id="imagenInput" multiple accept="image/*"><br>
+  <div id="preview"></div>
+
+  <button onclick="convertirAPDF()">Convertir a PDF</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    const input = document.getElementById('imagenInput');
+    const preview = document.getElementById('preview');
+    let imagenes = [];
+
+    input.addEventListener('change', (e) => {
+      preview.innerHTML = '';
+      imagenes = Array.from(e.target.files);
+
+      imagenes.forEach((imgFile) => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(imgFile);
+        preview.appendChild(img);
+      });
+    });
+
+    async function convertirAPDF() {
+      if (imagenes.length === 0) {
+        alert("Por favor selecciona una o más imágenes.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      for (let i = 0; i < imagenes.length; i++) {
+        const imgData = await fileToDataURL(imagenes[i]);
+
+        const img = new Image();
+        img.src = imgData;
+
+        await new Promise(resolve => {
+          img.onload = () => {
+            const width = pdf.internal.pageSize.getWidth();
+            const height = (img.height * width) / img.width;
+
+            if (i !== 0) pdf.addPage();
+            pdf.addImage(img, 'JPEG', 0, 0, width, height);
+            resolve();
+          };
+        });
+      }
+
+      pdf.save("convertido.pdf");
+    }
+
+    function fileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
